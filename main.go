@@ -1,21 +1,17 @@
 package main
 
 import (
-	"fmt"
-	"github.com/yuri-ncs/novel-chapter-scraper/parser"
-	"github.com/yuri-ncs/novel-chapter-scraper/req"
+	"github.com/joho/godotenv"
+	"github.com/yuri-ncs/novel-chapter-scraper/database"
+	"github.com/yuri-ncs/novel-chapter-scraper/scraper"
 )
 
 func main() {
-	url := "https://novelbin.me/novel-book/shadow-slave"
 
-	res, err := req.MakeRequest(url)
+	godotenv.Load()
 
-	if err != nil {
-		fmt.Println("Error: ", err)
-		return
-	}
+	database.Connect()
 
-	parser.ParseHTML(res)
+	scraper.Work()
 
 }

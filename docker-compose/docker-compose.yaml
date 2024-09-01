@@ -1,0 +1,11 @@
+services:
+  db:
+    image: postgres:latest
+    ports:
+      - "${DATABASE_PORT}:${DATABASE_PORT}"
+    environment:
+      POSTGRES_PASSWORD: "${DATABASE_PASSWORD}"
+      POSTGRES_USER: "${DATABASE_USER}"
+      POSTGRES_DB: "${DATABASE_NAME}"
+    env_file:
+      - ../.env

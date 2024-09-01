@@ -37,7 +37,6 @@ func extractDataFromChapterDiv(n *html.Node) {
 
 	// Iterate through child nodes of the "l-chapter" div
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		fmt.Println("Child node: ", c.Attr)
 		if c.Type == html.ElementNode && c.Data == "div" {
 			for _, attr := range c.Attr {
 				if attr.Key == "class" && strings.Contains(attr.Val, "item") {
@@ -69,7 +68,6 @@ func extractDataFromItemDiv(n *html.Node) {
 	match := re.FindStringSubmatch(chapterTitle)
 
 	fmt.Println("Chapter Number: ", match[1])
-	_, chapterTitle, _ = strings.Cut(chapterTitle, "Chapter "+match[1])
 	fmt.Printf("Chapter Title: %s\n", chapterTitle)
 	fmt.Printf("href: %s\n", href)
 	fmt.Printf("Item Time: %s\n", itemTime)
