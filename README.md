@@ -4,6 +4,8 @@
 
 ```
  novelbin.me
+ allnovelbin.net
+ novel-next.com
 ```
 
 
