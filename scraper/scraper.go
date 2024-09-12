@@ -17,7 +17,7 @@ func Work() {
 		fmt.Println("Error: ", err)
 		return
 	}
-
+	fmt.Println("Novels to update: ", novels)
 	for _, novel := range novels {
 		res, err := req.MakeRequest(string(novel.URL))
 

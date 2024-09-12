@@ -46,9 +46,13 @@ func PopulateDatabase() {
 		fmt.Println("Database connection is nil!")
 		return
 	}
-	site := models.Site{
+	site := []models.Site{{
 		Name:       "Novel Bin",
-		DefaultURL: "https://novelbin.me",
+		DefaultURL: "https://novelbin.me"},
+		{Name: "Novel Next",
+			DefaultURL: "https://novel-next.com"},
+		{Name: "All Novel Bin",
+			DefaultURL: "https://allnovelbin.net"},
 	}
 	result := db_global.Create(&site)
 	if result.Error != nil {
@@ -58,8 +62,9 @@ func PopulateDatabase() {
 
 	// Creating a sample novel for the site
 	novel := models.Novel{
-		SiteID:           site.ID,
+		SiteID:           site[0].ID,
 		Name:             "Shadow Slave",
+		URL:              "https://novelbin.me/novel-book/shadow-slave",
 		NumberOfChapters: 1800,
 	}
 	result = db_global.Create(&novel)
@@ -109,7 +114,7 @@ func GetAllNovels() []models.Novel {
 func GetNovelsToUpdate() ([]models.Novel, error) {
 	var novels []models.Novel
 
-	result := db_global.Where("NOW() - updated_at > INTERVAL '30 minutes' AND deleted_at IS NULL").Find(&novels)
+	result := db_global.Where("NOW() - updated_at > INTERVAL '5 minutes' AND deleted_at IS NULL").Find(&novels)
 	if result.Error != nil {
 		fmt.Println("Error getting novels to update:", result.Error)
 		return nil, result.Error
@@ -148,4 +153,16 @@ func CreateChapter(chapter *models.Chapter) error {
 	}
 
 	return nil
+}
+
+func GetSitesList() string {
+	var sites []models.Site
+	db_global.Find(&sites)
+
+	var sitesList string
+	for _, site := range sites {
+		sitesList += fmt.Sprintf("ID [%d]. Site [%s]\n", site.ID, site.Name)
+	}
+
+	return sitesList
 }
