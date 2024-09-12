@@ -7,40 +7,49 @@ import (
 	"strings"
 )
 
-func ParseHTML(data string) {
+type Chapter struct {
+	Number int
+	Title  string
+	Href   string
+	Time   string
+}
+
+func ParseHTML(data string, chapter *Chapter) error {
 	doc, err := html.Parse(strings.NewReader(data))
 	if err != nil {
 		fmt.Println("Error: ", err)
-		return
+		return err
 	}
 
-	findChapterDiv(doc)
+	// Pass the chapter struct down to extract data into it
+	findChapterDiv(doc, chapter)
+	return nil
 }
 
-func findChapterDiv(n *html.Node) {
+func findChapterDiv(n *html.Node, chapter *Chapter) {
 	if n.Type == html.ElementNode && n.Data == "div" {
 		for _, attr := range n.Attr {
 			if attr.Key == "class" && strings.Contains(attr.Val, "l-chapter") {
-				extractDataFromChapterDiv(n)
+				extractDataFromChapterDiv(n, chapter)
 			}
 		}
 	}
 
 	// Recursively search for the div in child nodes
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		findChapterDiv(c)
+		findChapterDiv(c, chapter)
 	}
 }
 
 // Function to extract data from the div with class "l-chapter"
-func extractDataFromChapterDiv(n *html.Node) {
+func extractDataFromChapterDiv(n *html.Node, chapter *Chapter) {
 
 	// Iterate through child nodes of the "l-chapter" div
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		if c.Type == html.ElementNode && c.Data == "div" {
 			for _, attr := range c.Attr {
 				if attr.Key == "class" && strings.Contains(attr.Val, "item") {
-					extractDataFromItemDiv(c)
+					extractDataFromItemDiv(c, chapter)
 				}
 			}
 		}
@@ -49,7 +58,7 @@ func extractDataFromChapterDiv(n *html.Node) {
 }
 
 // Function to extract data from the div with class "item"
-func extractDataFromItemDiv(n *html.Node) {
+func extractDataFromItemDiv(n *html.Node, chapter *Chapter) {
 	var chapterTitle, href, itemTime string
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		if c.Type == html.ElementNode && c.Data == "div" {
@@ -62,15 +71,19 @@ func extractDataFromItemDiv(n *html.Node) {
 			}
 		}
 	}
+
+	// Extract the chapter number from the title using regex
 	re := regexp.MustCompile(`Chapter\s+(\d+)`)
-
-	// Step 2: Find the number after "Chapter"
 	match := re.FindStringSubmatch(chapterTitle)
+	if len(match) > 1 {
+		// Convert the chapter number to an integer
+		fmt.Sscanf(match[1], "%d", &chapter.Number)
+	}
 
-	fmt.Println("Chapter Number: ", match[1])
-	fmt.Printf("Chapter Title: %s\n", chapterTitle)
-	fmt.Printf("href: %s\n", href)
-	fmt.Printf("Item Time: %s\n", itemTime)
+	// Assign the extracted data to the chapter struct
+	chapter.Title = chapterTitle
+	chapter.Href = href
+	chapter.Time = itemTime
 }
 
 // Helper function to extract data from the <a> tag within "item-value" div

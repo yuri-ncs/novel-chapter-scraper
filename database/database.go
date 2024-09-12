@@ -1,6 +1,7 @@
 package database
 
 import (
+	"errors"
 	"fmt"
 	"github.com/yuri-ncs/novel-chapter-scraper/models"
 	"gorm.io/driver/postgres"
@@ -97,4 +98,54 @@ func VerifySupportedSite(url string) bool {
 	}
 
 	return false
+}
+
+func GetAllNovels() []models.Novel {
+	var novels []models.Novel
+	db_global.Find(&novels)
+	return novels
+}
+
+func GetNovelsToUpdate() ([]models.Novel, error) {
+	var novels []models.Novel
+
+	result := db_global.Where("NOW() - updated_at > INTERVAL '30 minutes' AND deleted_at IS NULL").Find(&novels)
+	if result.Error != nil {
+		fmt.Println("Error getting novels to update:", result.Error)
+		return nil, result.Error
+	}
+
+	return novels, nil
+}
+
+func UpdateChapter(chapter *models.Chapter) error {
+	result := db_global.Save(chapter)
+	if result.Error != nil {
+		fmt.Println("Error updating chapter:", result.Error)
+		return result.Error
+	}
+
+	return nil
+}
+
+func GetLastChapterByNovelID(novelID uint) (*models.Chapter, error) {
+	var chapter models.Chapter
+
+	result := db_global.Where("novel_id = ?", novelID).Order("number DESC").First(&chapter)
+	if result.Error != nil && !errors.Is(gorm.ErrRecordNotFound, result.Error) {
+		fmt.Println("Error getting last chapter by novel ID:", result.Error)
+		return nil, result.Error
+	}
+
+	return &chapter, nil
+}
+
+func CreateChapter(chapter *models.Chapter) error {
+	result := db_global.Create(chapter)
+	if result.Error != nil {
+		fmt.Println("Error creating chapter:", result.Error)
+		return result.Error
+	}
+
+	return nil
 }

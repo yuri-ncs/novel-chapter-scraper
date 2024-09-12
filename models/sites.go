@@ -6,7 +6,7 @@ import (
 )
 
 type Site struct {
-	ID         uint   `gorm:"primaryKey"`
+	ID         uint   `gorm:"uniqueIndex; primaryKey"`
 	Name       string `gorm:"size:255;not null"`
 	DefaultURL string `gorm:"size:255;not null;unique"`
 	CreatedAt  time.Time

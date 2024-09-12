@@ -10,6 +10,7 @@ type Chapter struct {
 	NovelID   uint   `gorm:"not null"`
 	Number    int    `gorm:"not null"`
 	Title     string `gorm:"size:255;not null"`
+	Href      string `gorm:"size:255;not null"`
 	CreatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
