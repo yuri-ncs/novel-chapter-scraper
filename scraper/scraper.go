@@ -6,6 +6,7 @@ import (
 	"github.com/yuri-ncs/novel-chapter-scraper/models"
 	"github.com/yuri-ncs/novel-chapter-scraper/parser"
 	"github.com/yuri-ncs/novel-chapter-scraper/req"
+	"github.com/yuri-ncs/novel-chapter-scraper/telegram"
 	"time"
 )
 
@@ -40,13 +41,21 @@ func Work() {
 		var lastChapter *models.Chapter
 		lastChapter, err = database.GetLastChapterByNovelID(novel.ID)
 
-		if err != nil {
-			fmt.Println("Error trying to get the last saved chapter: ", err)
-			continue
-		}
+		if err == nil {
 
-		if lastChapter != nil && lastChapter.Number >= chapter.Number {
-			continue
+			if lastChapter != nil && lastChapter.Number >= chapter.Number {
+				fmt.Println("No new chapters")
+				novel.UpdatedAt = time.Now()
+				err = database.UpdateNovel(&novel)
+				if err != nil {
+					fmt.Println("Error trying to update the novel: ", err)
+				}
+				continue
+			}
+
+		} else {
+			fmt.Println("Error trying to get the last chapter: ", err)
+			fmt.Println("Creating the first chapter")
 		}
 
 		newChapter := models.Chapter{
@@ -55,6 +64,11 @@ func Work() {
 			Title:   chapter.Title,
 			Href:    chapter.Href,
 		}
+
+		novel.NumberOfChapters = chapter.Number
+		novel.UpdatedAt = time.Now()
+
+		err = database.UpdateNovel(&novel)
 
 		err = database.CreateChapter(&newChapter)
 
@@ -66,6 +80,9 @@ func Work() {
 		///tecnically here we should send a notification to the user
 		///but for now we will just print the new chapter
 		///and save in the database
+
+		telegram.SendNotification(newChapter, novel.Name)
+
 		fmt.Println("New chapter: ", newChapter)
 
 		time.Sleep(5 * time.Second)

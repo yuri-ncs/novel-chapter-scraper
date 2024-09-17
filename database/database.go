@@ -6,8 +6,8 @@ import (
 	"github.com/yuri-ncs/novel-chapter-scraper/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	Url "net/url"
 	"os"
-	"strings"
 )
 
 var db_global *gorm.DB
@@ -31,7 +31,7 @@ func Connect() {
 		panic("failed to connect database")
 	}
 
-	db.AutoMigrate(&models.Site{}, &models.Novel{}, &models.Chapter{})
+	db.AutoMigrate(&models.Site{}, &models.Novel{}, &models.Chapter{}, &models.User{}, &models.UserNovel{})
 
 	fmt.Println("Successfully connected to PostgreSQL!")
 
@@ -91,18 +91,37 @@ func PopulateDatabase() {
 	fmt.Println("Database populated successfully!")
 }
 
-func VerifySupportedSite(url string) bool {
+func VerifySupportedSite(url string) (bool, uint) {
 	// Check if the site is supported
+	u, err := Url.Parse(url)
+	if err != nil {
+		fmt.Println("Error parsing the URL:", err)
+		return false, 0
+	}
+
 	var sites []models.Site
 	db_global.Find(&sites)
 
 	for _, site := range sites {
-		if strings.HasPrefix(url, site.DefaultURL) {
-			return true
+
+		s, _ := Url.Parse(site.DefaultURL)
+
+		if s.Hostname() == u.Hostname() {
+			return true, site.ID
 		}
 	}
 
-	return false
+	return false, 0
+}
+
+func CreateNovel(novel *models.Novel) error {
+	result := db_global.Create(novel)
+	if result.Error != nil {
+		fmt.Println("Error creating novel:", result.Error)
+		return result.Error
+	}
+
+	return nil
 }
 
 func GetAllNovels() []models.Novel {
@@ -111,16 +130,33 @@ func GetAllNovels() []models.Novel {
 	return novels
 }
 
+func GetActiveNovels() []models.Novel {
+	var novels []models.Novel
+	db_global.Where("deleted_at IS NULL").Find(&novels)
+	return novels
+}
+
 func GetNovelsToUpdate() ([]models.Novel, error) {
 	var novels []models.Novel
 
-	result := db_global.Where("NOW() - updated_at > INTERVAL '5 minutes' AND deleted_at IS NULL").Find(&novels)
+	result := db_global.Where("NOW() - updated_at >= INTERVAL '" + os.Getenv("SCRAPE_INTERVAL") + " minutes' AND deleted_at IS NULL").Find(&novels)
 	if result.Error != nil {
 		fmt.Println("Error getting novels to update:", result.Error)
 		return nil, result.Error
 	}
 
 	return novels, nil
+}
+
+func UpdateNovel(novel *models.Novel) error {
+	result := db_global.Save(novel)
+	if result.Error != nil {
+		fmt.Println("Error updating novel:", result.Error)
+		return result.Error
+	}
+
+	return nil
+
 }
 
 func UpdateChapter(chapter *models.Chapter) error {
@@ -165,4 +201,66 @@ func GetSitesList() string {
 	}
 
 	return sitesList
+}
+
+func FindUsersByNovelID(novelID uint) ([]models.User, error) {
+	var users []models.User
+	err := db_global.Preload("Novels").Where("novels.id = ?", novelID).Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+func GetUsersByNovelID(novelID uint) ([]models.User, error) {
+	var users []models.User
+	err := db_global.Joins("JOIN user_novels ON user_novels.user_id = users.id").
+		Where("user_novels.novel_id = ?", novelID).
+		Find(&users).Error
+
+	if err != nil {
+		fmt.Println("Error retrieving users:", err)
+	} else {
+		fmt.Printf("Found %d users associated with novel ID %d\n", len(users), novelID)
+	}
+	return users, nil
+}
+
+func CreateUser(user *models.User) error {
+	result := db_global.Create(user)
+	if result.Error != nil {
+		fmt.Println("Error creating user:", result.Error)
+		return result.Error
+	}
+
+	return nil
+}
+
+func GetUserByChatID(chatID int64) (*models.User, error) {
+	var user models.User
+	result := db_global.Where("chat_id = ?", chatID).First(&user)
+	if result.Error != nil && !errors.Is(gorm.ErrRecordNotFound, result.Error) {
+		fmt.Println("Error getting user by chat ID:", result.Error)
+		return nil, result.Error
+	}
+
+	return &user, nil
+}
+
+func GetNovelByName(name string) (*models.Novel, error) {
+	var novel models.Novel
+	result := db_global.Where("name = ?", name).First(&novel)
+	if result.Error != nil && !errors.Is(gorm.ErrRecordNotFound, result.Error) {
+		fmt.Println("Error getting novel by name:", result.Error)
+		return nil, result.Error
+	}
+
+	return &novel, nil
+}
+
+func TrackNovel(user *models.User, novel *models.Novel) bool {
+
+	db_global.Model(&user).Attrs(&models.User{Novels: []models.Novel{*novel}})
+
+	return true
 }
