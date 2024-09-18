@@ -55,7 +55,7 @@
 
 To run the scraper, execute the following command:
 ```bash
-npm start
+go run main
 ```
 
 This will start the process of scraping the configured novel websites and saving the latest chapters to the database.
