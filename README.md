@@ -41,11 +41,13 @@
 
 3. Set up your database:
    
+   The code can run with an empty database and you can register new novels and sites through telegram, if you need to thest right away, there is a method to populate the database.
+   
    ```bash
    cd novel-chapter-scraper/docker-compose
    docker-compose up
    ```
- 4. Run the code:
+ 5. Run the code:
     ```bash
      go run main
     ```
