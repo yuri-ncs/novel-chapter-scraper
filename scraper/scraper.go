@@ -42,8 +42,10 @@ func Work() {
 		lastChapter, err = database.GetLastChapterByNovelID(novel.ID)
 
 		if err == nil {
+			fmt.Println("Last chapter: ", lastChapter.Number)
+			fmt.Println("Current chapter: ", chapter.Number)
 
-			if lastChapter != nil && lastChapter.Number >= chapter.Number {
+			if lastChapter.Number >= chapter.Number {
 				fmt.Println("No new chapters")
 				novel.UpdatedAt = time.Now()
 				err = database.UpdateNovel(&novel)
@@ -68,6 +70,10 @@ func Work() {
 		novel.NumberOfChapters = chapter.Number
 		novel.UpdatedAt = time.Now()
 
+		telegram.SendNotification(newChapter, novel.Name)
+
+		fmt.Println("New chapter: ", newChapter)
+
 		err = database.UpdateNovel(&novel)
 
 		err = database.CreateChapter(&newChapter)
@@ -77,15 +83,6 @@ func Work() {
 			continue
 		}
 
-		///tecnically here we should send a notification to the user
-		///but for now we will just print the new chapter
-		///and save in the database
-
-		telegram.SendNotification(newChapter, novel.Name)
-
-		fmt.Println("New chapter: ", newChapter)
-
-		time.Sleep(5 * time.Second)
 	}
 
 }

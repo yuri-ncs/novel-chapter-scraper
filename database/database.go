@@ -258,9 +258,53 @@ func GetNovelByName(name string) (*models.Novel, error) {
 	return &novel, nil
 }
 
-func TrackNovel(user *models.User, novel *models.Novel) bool {
+func TrackNovel(userID uint, novelID uint) bool {
+	var user models.User
+	var novel models.Novel
 
-	db_global.Model(&user).Attrs(&models.User{Novels: []models.Novel{*novel}})
+	// Find the user and preload the novels they are tracking
+	if err := db_global.Preload("Novels").First(&user, userID).Error; err != nil {
+		fmt.Println("User not found:", err)
+		return false
+	}
 
+	// Find the novel to be tracked
+	if err := db_global.First(&novel, novelID).Error; err != nil {
+		fmt.Println("Novel not found:", err)
+		return false
+	}
+
+	// Check if the user is already tracking this novel
+	for _, n := range user.Novels {
+		if n.ID == novelID {
+			// Novel already tracked, return true
+			return true
+		}
+	}
+
+	// Add the novel to the user's list of novels
+	if err := db_global.Model(&user).Association("Novels").Append(&novel); err != nil {
+		fmt.Println("Failed to add novel to user:", err)
+		return false
+	}
+
+	// Successfully added novel, return true
 	return true
+}
+
+func GetTrackedNovels(userID uint) ([]string, error) {
+	var user models.User
+
+	// Find the user and preload the novels they are tracking
+	if err := db_global.Preload("Novels").First(&user, userID).Error; err != nil {
+		return nil, err
+	}
+
+	// Extract novel titles from the user's tracked novels
+	var novelTitles []string
+	for _, novel := range user.Novels {
+		novelTitles = append(novelTitles, novel.Name)
+	}
+
+	return novelTitles, nil
 }

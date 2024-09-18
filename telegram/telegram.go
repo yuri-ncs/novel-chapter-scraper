@@ -8,7 +8,6 @@ import (
 	"html/template"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 )
@@ -179,11 +178,11 @@ func commandHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		user, err := database.GetUserByChatID(update.Message.Chat.ID)
 
 		if err != nil {
-			msg.Text = "Sign-up First!."
+			msg.Text = "Sign-up First!"
 			break
 		}
 
-		tracking := database.TrackNovel(user, novel)
+		tracking := database.TrackNovel(user.ID, novel.ID)
 
 		if tracking {
 			msg.Text = "Novel tracked successfully!"
@@ -206,15 +205,15 @@ func commandHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI) {
 			msg.ParseMode = "MarkdownV2"
 			bot.Send(msg)
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID, "")
-			msg.Text = "Use the example below to track a novel.\n"
-			msg.Text += "/track [novel name]\n"
+			msg.Text = "Use the example below to track a novel.\n\n"
+			msg.Text += "/track [novel name]\n\n"
 
 		case "user_menu":
 			user, _ := database.GetUserByChatID(update.Message.Chat.ID)
-			novels := user.Novels
-			msg.Text = "You are tracking the following novels:\n"
+			novels, _ := database.GetTrackedNovels(user.ID)
+			msg.Text = "You are tracking the following novels:\n\n"
 			for _, novel := range novels {
-				msg.Text += novel.Name + "\n"
+				msg.Text += novel + "\n"
 			}
 		default:
 			msg.Text = "Type /novels to see the available novels."
@@ -311,7 +310,7 @@ func SendNotification(chapter models.Chapter, novelName string) {
 	for _, user := range users {
 		msg := tgbotapi.NewMessage(user.ChatID, "")
 		msg.Text = "New chapter for " + novelName + "!\n"
-		msg.Text += "Chapter [" + strconv.FormatUint(uint64(chapter.Number), 10) + "]: " + chapter.Title
+		msg.Text += chapter.Title + "\n"
 		msg.Text += "Link: " + chapter.Href
 
 		Bot.Send(msg)
