@@ -10,6 +10,7 @@
 - Scrapes new chapters from supported novel websites.
 - Stores novel information and chapters in a database.
 - Simple and easy-to-extend codebase for adding new scraping sources.
+- Notifies the registered users via Telegram bot
 
 ## Table of Contents
 - [Supported-Sites](#supported-sites)
